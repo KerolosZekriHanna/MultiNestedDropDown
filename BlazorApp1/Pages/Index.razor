@@ -1,0 +1,118 @@
+﻿@page "/"
+@using System.Text
+<PageTitle>Index</PageTitle>
+@inject HttpClient Http
+
+<div class="rz-p-sm-12 rz-text-align-center">
+    <RadzenLabel Text="Select Value Level 1" Component="DropDownMultiple" Style="margin-right: 8px; vertical-align: middle;" />
+    <RadzenDropDown @bind-Value=@valuesLevel1 Data=@ProductLevelOne TextProperty="BusinessCapabilittyName" ValueProperty="Prefix" Name="DropDownMultiple"
+                    Multiple=true AllowClear=true Placeholder="Select products" Style="width: 100%; max-width: 400px;" />
+</div>
+
+<div class="rz-p-sm-12 rz-text-align-center">
+    <RadzenLabel Text="Select Value Level 2" Component="DropDownMultiple" Style="margin-right: 8px; vertical-align: middle;" />
+    <RadzenDropDown @bind-Value=@valuesLevel2 Data=@ProductLevelTwo TextProperty="BusinessCapabilittyName" ValueProperty="Prefix" Name="DropDownMultiple"
+                    Multiple=true AllowClear=true Placeholder="Select products" Style="width: 100%; max-width: 400px;" />
+</div>
+
+<div class="rz-p-sm-12 rz-text-align-center">
+    <RadzenLabel Text="Select Value Level 3" Component="DropDownMultiple" Style="margin-right: 8px; vertical-align: middle;" />
+    <RadzenDropDown @bind-Value=@valuesLevel3 Data=@ProductLevelThree TextProperty="BusinessCapabilittyName" ValueProperty="Prefix" Name="DropDownMultiple"
+                    Multiple=true AllowClear=true Placeholder="Select products" Style="width: 100%; max-width: 400px;" />
+</div>
+<div>
+    <RadzenButton Click="() => Swap()">Toggle ShowResults</RadzenButton>
+</div>
+
+@if (ShowResults)
+{
+    <RadzenLabel Text="@GetBusinessCapabilities(CapabilityLevelEnum.Level_1 , valuesLevel1)" Component="DropDownMultiple" Style="margin-right: 8px; vertical-align: middle;" />
+    <br />
+    <RadzenLabel Text="@GetBusinessCapabilities(CapabilityLevelEnum.Level_2 , valuesLevel2)" Component="DropDownMultiple" Style="margin-right: 8px; vertical-align: middle;" />
+    <br />
+    <RadzenLabel Text="@GetBusinessCapabilities(CapabilityLevelEnum.Level_3 , valuesLevel3)" Component="DropDownMultiple" Style="margin-right: 8px; vertical-align: middle;" />
+    <br />
+}
+
+@code {
+
+
+    private List<string> _valuesLevel1;
+    private List<string> _valuesLevel2;
+    private List<string> _valuesLevel3;
+
+    public List<string> valuesLevel1
+    {
+        get { return _valuesLevel1 ?? new List<string>(); }
+        set
+        {
+            _valuesLevel1 = value;
+
+            ReCalculateLists();
+        }
+    }
+
+    public List<string> valuesLevel2
+    {
+        get { return _valuesLevel2 ?? new List<string>(); }
+        set
+        {
+            _valuesLevel2 = value;
+            ReCalculateLists();
+        }
+    }
+
+    public List<string> valuesLevel3
+    {
+        get { return _valuesLevel3 ?? new List<string>(); }
+        set
+        {
+            _valuesLevel3 = value;
+            ReCalculateLists();
+        }
+    }
+
+    IEnumerable<Product> AllProducts;
+    IEnumerable<Product> ProductLevelOne;
+    IEnumerable<Product> ProductLevelTwo;
+    IEnumerable<Product> ProductLevelThree;
+
+
+    public bool ShowResults { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AllProducts = await Http.GetFromJsonAsync<Product[]>("sample-data/lists.json");
+        ReCalculateLists();
+    }
+
+
+    protected void ReCalculateLists()
+    {
+
+        ProductLevelOne = GetProduct(CapabilityLevelEnum.Level_1).ToList();
+
+        ProductLevelTwo = GetProduct(CapabilityLevelEnum.Level_2)
+            .Where(x => valuesLevel1.Any(prefix => x.BusinessCapabilittyName.StartsWith(prefix)))
+            .ToList();
+
+        ProductLevelThree = GetProduct(CapabilityLevelEnum.Level_3)
+            .Where(x => valuesLevel2.Any(prefix => x.BusinessCapabilittyName.StartsWith(prefix)))
+            .ToList();
+    }
+
+
+    protected List<Product> GetProduct(CapabilityLevelEnum capabilityLevelEnum)
+    {
+        return AllProducts.Where(x => x.BusinessCapabilityLevel == (int)capabilityLevelEnum).ToList();
+    }
+
+    public string GetBusinessCapabilities(CapabilityLevelEnum capabilityLevelEnum, List<string> values)
+    {
+        return $"Business Capabilities {capabilityLevelEnum.ToString()}: {(valuesLevel1.Any() ? string.Join(", ", values) : "none")}\n";
+    }
+    public void Swap()
+    {
+        ShowResults = !ShowResults;
+    }
+}
